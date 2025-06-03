@@ -84,5 +84,5 @@ class CodeExplainBuddy:
             agents=self.agents,
             tasks=self.tasks,
             process=Process.sequential,  # Run tasks sequentially
-            verbose=True,
+            verbose=True
         )

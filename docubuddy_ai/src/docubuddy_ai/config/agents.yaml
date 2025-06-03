@@ -10,7 +10,7 @@ code_segmenter:
     Instead of returning a list or raw blocks, you produce a clean, readable string with clear headers for each segment type.
   inputs:
     - code_text
-  outputs:
+  outputs: 
     - segmented_code  # A single formatted string output
 
 
