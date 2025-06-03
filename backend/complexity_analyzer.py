@@ -6,6 +6,7 @@ Goal: Analyze codebase and rank functions/code parts by complexity
 Output: Top 100 most complex code sections for further LLM analysis
 """
 
+import json
 import os
 import re
 from dataclasses import dataclass
@@ -39,7 +40,7 @@ class CodeComplexityAnalyzer:
             },
             "java": {
                 "extensions": [".java"],
-                "function_pattern": r"\b(?:public|private|protected)?\s*(?:static)?\s*\w+\s+(\w+)\s*\(",
+                "function_pattern": r"^\s*(?:public|protected|private)?\s*(?:static\s+)?(?:[\w<>\[\]]+\s+)+(\w+)\s*\([^)]*\)\s*(?:throws\s+\w+(?:\s*,\s*\w+)*)?\s*\{",
                 "class_pattern": r"\b(?:public|private)?\s*class\s+(\w+)",
                 "branching_keywords": ["if", "else", "for", "while", "switch", "case", "try", "catch"],
                 "comment_patterns": [r"//.*", r"/\*[\s\S]*?\*/"],
@@ -135,68 +136,66 @@ class CodeComplexityAnalyzer:
             if ext in config["extensions"]:
                 return lang
         return "unknown"
+    
+    def strip_string_literals(self, line: str) -> str:
+        """Remove all string literals (single and double quoted) from the line."""
+        return re.sub(r'(["\'])(?:\\.|[^\\])*?\1', '', line)
 
     def extract_functions(self, content: str, language: str) -> List[Dict[str, Any]]:
-        """Extract function definitions and their content"""
         if language == "unknown":
             return []
 
         config = self.language_patterns[language]
         functions = []
+        lines = content.splitlines()
+        total_lines = len(lines)
+        i = 0
 
-        lines = content.split("\n")
-        current_function = None
-        brace_count = 0
-        in_function = False
-
-        for i, line in enumerate(lines):
-            # Check for function definition
+        while i < total_lines:
+            line = lines[i]
             func_match = re.search(config["function_pattern"], line)
+
             if func_match:
-                if current_function:
-                    functions.append(current_function)
+                func_name = func_match.group(1)
+                start_line = i + 1
+                function_lines = [line]
 
-                func_name = (
-                    func_match.group(1) if func_match.group(1) else func_match.group(2)
-                )
-                current_function = {
+                # Capture full multi-line signature
+                while "{" not in line and i + 1 < total_lines:
+                    i += 1
+                    line = lines[i]
+                    function_lines.append(line)
+                    if "{" in line:
+                        break
+
+                if "{" not in line:
+                    i += 1
+                    continue  # skip malformed/abstract
+
+                # Begin brace counting (ignore braces inside strings)
+                brace_count = self.strip_string_literals(line).count("{") - self.strip_string_literals(line).count("}")
+                i += 1
+
+                while i < total_lines and brace_count > 0:
+                    line = lines[i]
+                    code_only = self.strip_string_literals(line)
+                    brace_count += code_only.count("{") - code_only.count("}")
+                    function_lines.append(line)
+                    i += 1
+
+                end_line = start_line + len(function_lines) - 1
+                functions.append({
                     "name": func_name,
-                    "start_line": i + 1,
-                    "end_line": i + 1,  # Will be updated when function ends
-                    "content": [line],
+                    "start_line": start_line,
+                    "end_line": end_line,
+                    "content": function_lines,
                     "language": language,
-                }
-                in_function = True
-                brace_count = line.count("{") - line.count("}")
+                })
+            else:
+                i += 1
 
-            elif in_function and current_function:
-                current_function["content"].append(line)
-                current_function["end_line"] = i + 1
-                
-                # Track braces to find function end
-                brace_count += line.count("{") - line.count("}")
-
-                # For Python, use indentation
-                if language == "python":
-                    if (
-                        line.strip()
-                        and not line.startswith("    ")
-                        and not line.startswith("\t")
-                    ):
-                        if not re.match(r"^\s*(def|class|@)", line):
-                            functions.append(current_function)
-                            current_function = None
-                            in_function = False
-
-                # For brace-based languages like Java
-                elif brace_count <= 0 and "{" in "".join(current_function["content"]):
-                    functions.append(current_function)
-                    current_function = None
-                    in_function = False
-
-        if current_function:
-            functions.append(current_function)
         return functions
+
 
     def calculate_cyclomatic_complexity(self, content: str, language: str) -> int:
         """Calculate cyclomatic complexity (number of decision points + 1)"""
@@ -466,61 +465,24 @@ class CodeComplexityAnalyzer:
 
 
 def main():
-    """Main execution function"""
+    """Analyze a codebase for function complexity and output the results."""
+
     analyzer = CodeComplexityAnalyzer()
-
-    # UPDATE THIS PATH to your cloned repository
     codebase_path = r"C:\Projects\2025\rewrite"  # Windows
-    # codebase_path = "/home/username/path/to/cloned/repo"        # Linux/Mac
-
-    # Add your GitHub repo URL here (ensure trailing slash, and path after 'blob/main/' matches your repo structure)
     analyzer.github_repo_url = "https://github.com/openrewrite/rewrite/blob/main/"
-
-    print(f"Analyzing codebase at: {codebase_path}")
+    print(f"\n🔍 Analyzing codebase at: {codebase_path}...\n")
     top_complex_functions = analyzer.analyze_codebase(codebase_path)
-
-    output = f"""
-Top {len(top_complex_functions)} most complex functions:
-{'=' * 80}
-
-"""
-
-    for i, func in enumerate(top_complex_functions, 1):
-        complexity_breakdown = "\n".join(
-            [
-                f"     - {reason}: {score}"
-                for reason, score in func["rule_analysis"].items()
-            ]
-        )
-
-        output += f"""{i}. {func['function_name']} (Score: {func['rule_analysis']['rule_score']:.2f})
-   File URL: {func['file_url']}:{func['start_line']}-{func['end_line']}
-   GitHub URL: {func['github_url']}
-   Language: {func['language']}
-   Complexity Breakdown:
-{complexity_breakdown}
-
-"""
-
-    print(output)
-
-    total_files_analyzed = len(set(func["file_url"] for func in top_complex_functions))
-    languages_found = set(func["language"] for func in top_complex_functions)
-
-    summary = f"""
-Analysis Summary:
-Files analyzed: {total_files_analyzed}
-Languages found: {', '.join(sorted(languages_found))}
-Functions analyzed: {len(top_complex_functions)}
-
-Results saved to complex_functions.json
-"""
-
+    total_files_analyzed = len({func["file_url"] for func in top_complex_functions})
+    languages_found = sorted({func["language"] for func in top_complex_functions})
+    summary = (
+        "\n📌 Analysis Summary:\n"
+        f"   📂 Files analyzed: {total_files_analyzed}\n"
+        f"   🧬 Languages found: {', '.join(languages_found)}\n"
+        f"   🔍 Functions analyzed: {len(top_complex_functions)}\n"
+        "\n✅ Results saved to complex_functions.json\n"
+    )
     print(summary)
-
-    import json
-
-    with open("complex_functions.json", "w") as f:
+    with open("complex_functions.json", "w", encoding="utf-8") as f:
         json.dump(top_complex_functions, f, indent=2)
 
 
