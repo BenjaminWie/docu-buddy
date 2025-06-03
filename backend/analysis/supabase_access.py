@@ -1,14 +1,16 @@
 import json
+import os
 
+from dotenv import load_dotenv
 from supabase import Client, create_client
 
-# Initialize Supabase client
-SUPABASE_URL = "https://hmuizdwvqkkqgjsnjxxi.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhtdWl6ZHd2cWtrcWdqc25qeHhpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0ODk0MDg5MSwiZXhwIjoyMDY0NTE2ODkxfQ.3TreHNUWelbzbmlbIDrigLfN6x8NR3N6MdYD2toIA9k"  # Keep this secret
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-
-def upload_function_complexity(json_path: str):
+def upload_function_complexity():
+    json_path = "./llm_analyzed_functions.json"
+    load_dotenv()
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_KEY")
+    supabase: Client = create_client(supabase_url, supabase_key)
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -47,10 +49,9 @@ def upload_function_complexity(json_path: str):
         }
         records.append(record)
 
-    # Insert into Supabase
     response = supabase.table("function_complexity").insert(records).execute()
     print("Insert response:", response)
 
 
-# Example usage
-upload_function_complexity("llm_analyzed_functions.json")
+if __name__ == "__main__":
+    upload_function_complexity()

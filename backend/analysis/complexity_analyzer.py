@@ -464,12 +464,12 @@ class CodeComplexityAnalyzer:
         return results[:100]
 
 
-def main():
+def main(repo_url: str):
     """Analyze a codebase for function complexity and output the results."""
 
     analyzer = CodeComplexityAnalyzer()
-    codebase_path = r"C:\Projects\2025\rewrite"  # Windows
-    analyzer.github_repo_url = "https://github.com/openrewrite/rewrite/blob/main/"
+    codebase_path = r"./repo"
+    analyzer.github_repo_url = repo_url
     print(f"\n🔍 Analyzing codebase at: {codebase_path}...\n")
     top_complex_functions = analyzer.analyze_codebase(codebase_path)
     total_files_analyzed = len({func["file_url"] for func in top_complex_functions})
@@ -482,9 +482,9 @@ def main():
         "\n✅ Results saved to complex_functions.json\n"
     )
     print(summary)
-    with open("complex_functions.json", "w", encoding="utf-8") as f:
+    with open("./complex_functions.json", "w", encoding="utf-8") as f:
         json.dump(top_complex_functions, f, indent=2)
 
 
 if __name__ == "__main__":
-    main()
+    main("https://github.com/openrewrite/rewrite/blob/main/")

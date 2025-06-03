@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
-from llm_prompt import create_analysis_prompt
+from analysis.llm_prompt import create_analysis_prompt
 from openai import OpenAI
 
 
@@ -361,8 +361,8 @@ def main():
         return
 
     MODEL = "gpt-3.5-turbo"  # or "gpt-4" or "gpt-4-turbo" or "gpt-3.5-turbo"
-    INPUT_FILE = "complex_functions.json"  # Output from Phase 1
-    OUTPUT_FILE = "llm_analyzed_functions.json"
+    INPUT_FILE = "./complex_functions.json"  # Output from Phase 1
+    OUTPUT_FILE = "./llm_analyzed_functions.json"
     TOP_N = 8  # Number of functions to analyze
     # TOP_N = 20
 

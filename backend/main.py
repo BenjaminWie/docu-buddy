@@ -1,13 +1,19 @@
 import os
-from typing import List, Optional
+import sys
 
-from download_github_repo import download_github_repo_zip
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from analysis import (
+    complexity_analyzer,
+    download_github_repo,
+    llm_complexity_analyzer,
+    supabase_access,
+)
+from business_QA import get_business_qa
+from developer_QA import get_developer_qa
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
-
-from backend.business_QA import get_business_qa
-from backend.developer_QA import get_developer_qa
 
 app = FastAPI(
     title="My API",
@@ -23,24 +29,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Simple in-memory storage (replace with database in production)
-items_db = [
-    {"id": 1, "name": "Item 1", "description": "First item"},
-    {"id": 2, "name": "Item 2", "description": "Second item"},
-]
-
-
-# Pydantic models
-class Item(BaseModel):
-    name: str
-    description: Optional[str] = None
-
-
-class ItemResponse(BaseModel):
-    id: int
-    name: str
-    description: Optional[str] = None
 
 
 class Developer(BaseModel):
@@ -69,50 +57,17 @@ async def root():
 @app.post("/download-repo")
 def download_repo(payload: GitHubRepoRequest):
     try:
-        parts = payload.url.strip("/").split("/")
-        if len(parts) < 5 or "github.com" not in parts[2]:
+        url = str(payload.url).rstrip("/")
+        if not url.startswith("https://github.com/"):
             raise ValueError("Invalid GitHub URL format")
+        dest_path = download_github_repo.download_github_repo_zip(url)
+        complexity_analyzer.main(repo_url=f"{url}/blob/main/")
+        llm_complexity_analyzer.main()
+        supabase_access.upload_function_complexity()
 
-        owner = parts[3]
-        repo = parts[4].replace(".git", "")
-        dest_path = download_github_repo_zip(owner, repo)
-
-        return {"message": "Repository downloaded successfully", "path": dest_path}
+        return {"message": "Repository analised successfully", "path": dest_path}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.get("/items", response_model=List[ItemResponse])
-async def get_items():
-    return items_db
-
-
-@app.get("/items/{item_id}", response_model=ItemResponse)
-async def get_item(item_id: int):
-    item = next((item for item in items_db if item["id"] == item_id), None)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    return item
-
-
-@app.post("/items", response_model=ItemResponse)
-async def create_item(item: Item):
-    new_id = max(item["id"] for item in items_db) + 1 if items_db else 1
-    new_item = {"id": new_id, "name": item.name, "description": item.description}
-    items_db.append(new_item)
-    return new_item
-
-
-@app.delete("/items/{item_id}")
-async def delete_item(item_id: int):
-    global items_db
-    original_length = len(items_db)
-    items_db = [item for item in items_db if item["id"] != item_id]
-
-    if len(items_db) == original_length:
-        raise HTTPException(status_code=404, detail="Item not found")
-
-    return {"message": f"Item {item_id} deleted successfully"}
 
 
 @app.post("/developer", status_code=status.HTTP_201_CREATED)
