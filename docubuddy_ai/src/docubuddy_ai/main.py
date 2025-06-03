@@ -17,21 +17,17 @@ def run():
         # Paste your source code here as a string
         def example_function(x):
             return x * 2
-
-        class ExampleClass:
-            def method(self):
-                pass
-        """,
-        'compliance_info': """
-        # Paste relevant compliance requirements, summaries or vector DB results here as a string
-        Ensure functions have docstrings. Classes must follow naming conventions.
-        """,
-        'topic': 'AI LLMs',
-        'current_year': str(datetime.now().year),
-    }
+        """
+        }
     
     try:
-        DocubuddyAi().crew().kickoff(inputs=inputs)
+        #DocubuddyAi().crew().kickoff(inputs=inputs)
+        docubuddy = DocubuddyAi()
+        code_explainer = docubuddy.developer_explainer()
+        code_explainer_task = docubuddy.explain_code_developer_task()
+        code_explainer_task.agent = code_explainer
+        result = code_explainer_task.run(inputs=inputs)
+        
         print("Crew execution completed successfully.")
     except Exception as e:
         raise Exception(f"An error occurred while running the crew: {e}")
@@ -43,9 +39,8 @@ def train():
     inputs = {
         'code_text': '',  # You may want to customize or parameterize this
         'compliance_info': '',
-        'topic': 'AI LLMs',
-        'current_year': str(datetime.now().year),
-    }
+        'topic': 'AI LLMs'
+        }
     try:
         DocubuddyAi().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
 
@@ -69,8 +64,7 @@ def test():
     inputs = {
         'code_text': '',  # Add appropriate test code text here
         'compliance_info': '',
-        'topic': 'AI LLMs',
-        'current_year': str(datetime.now().year),
+        'topic': 'AI LLMs'
     }
     
     try:
