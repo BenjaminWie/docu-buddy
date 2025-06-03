@@ -444,14 +444,14 @@ class CodeComplexityAnalyzer:
                             "start_line": func["start_line"],
                             "end_line": func["end_line"],
                             "language": language,
-                            "total_complexity_score": metrics.total_score,
-                            "reason_for_complexity": {
+                            "rule_analysis": {
                                 "cyclomatic_complexity": metrics.cyclomatic_complexity,
                                 "nesting_depth": metrics.nesting_depth,
                                 "function_length": metrics.function_length,
                                 "parameter_count": metrics.parameter_count,
                                 "cognitive_complexity": metrics.cognitive_complexity,
                                 "documentation_score": metrics.documentation_score,
+                                "rule_score": metrics.total_score,
                             },
                         }
                         results.append(result)
@@ -461,7 +461,7 @@ class CodeComplexityAnalyzer:
                     continue
 
         # Sort by complexity score (descending) and return top 100
-        results.sort(key=lambda x: x["total_complexity_score"], reverse=True)
+        results.sort(key=lambda x: x["rule_analysis"]["rule_score"], reverse=True)
         return results[:100]
 
 
@@ -489,11 +489,11 @@ Top {len(top_complex_functions)} most complex functions:
         complexity_breakdown = "\n".join(
             [
                 f"     - {reason}: {score}"
-                for reason, score in func["reason_for_complexity"].items()
+                for reason, score in func["rule_analysis"].items()
             ]
         )
 
-        output += f"""{i}. {func['function_name']} (Score: {func['total_complexity_score']:.2f})
+        output += f"""{i}. {func['function_name']} (Score: {func['rule_analysis']['rule_score']:.2f})
    File URL: {func['file_url']}:{func['start_line']}-{func['end_line']}
    GitHub URL: {func['github_url']}
    Language: {func['language']}

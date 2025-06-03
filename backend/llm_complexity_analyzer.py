@@ -27,7 +27,7 @@ class LLMComplexityMetrics:
     suggestions: List[str] = None
     business_description: str = ""  # New field
     developer_description: str = ""  # New field
-    final_score: float = 0.0
+    llm_score: float = 0.0
 
     def __post_init__(self):
         if self.suggestions is None:
@@ -35,7 +35,7 @@ class LLMComplexityMetrics:
 
 
 class LLMComplexityAnalyzer:
-    def __init__(self, api_key: str, model: str = "gpt-4-turbo"):
+    def __init__(self, api_key: str, model: str):
         """
         Initialize the LLM analyzer
 
@@ -153,11 +153,11 @@ class LLMComplexityAnalyzer:
             f"Lines: {target_function['start_line']}-{target_function['end_line']}"
         )
         context_parts.append("\nPhase 1 Structural Complexity Metrics:")
-        for metric, value in target_function["reason_for_complexity"].items():
+        for metric, value in target_function["rule_analysis"].items():
             context_parts.append(f"  - {metric}: {value}")
 
         context_parts.append(
-            f"\nStructural Complexity Score: {target_function['total_complexity_score']:.2f}"
+            f"\nStructural Complexity Score: {target_function['rule_analysis']['rule_score']:.2f}"
         )
 
         # Add function code if available
@@ -249,8 +249,8 @@ class LLMComplexityAnalyzer:
     ) -> float:
         """Combine LLM analysis with structural metrics for final score"""
 
-        # Weight LLM metrics
-        llm_score = (
+        # Weight LLM metrics (normalize to 1-10 scale)
+        llm_metrics.llm_score = (
             llm_metrics.semantic_complexity * 3.0
             + llm_metrics.cognitive_load * 2.5
             + llm_metrics.maintainability * 2.0
@@ -258,8 +258,16 @@ class LLMComplexityAnalyzer:
             + llm_metrics.refactoring_urgency * 2.0
         ) / 11.0  # Normalize to 1-10 scale
 
-        # Combine with structural score (60% LLM, 40% structural)
-        final_score = (llm_score * 0.6) + (min(structural_score / 10, 10) * 0.4)
+        # Normalize structural score to 1-10 scale
+        # Assuming structural scores can be quite high, we need to map them appropriately
+        # You may need to adjust this based on your typical structural score ranges
+        normalized_structural = min(structural_score / 10.0, 10.0)
+
+        # Alternative normalization if structural scores are typically much higher:
+        # normalized_structural = min(structural_score / 50.0 * 10.0, 10.0)
+
+        # Combine scores (60% LLM, 40% structural)
+        final_score = (llm_metrics.llm_score * 0.6) + (normalized_structural * 0.4)
 
         return final_score
 
@@ -269,20 +277,10 @@ class LLMComplexityAnalyzer:
         """Analyze a single function with LLM"""
 
         print(f"Analyzing function: {target_function['function_name']}")
-
-        # Find related functions for context
         related_functions = self.find_related_functions(target_function, all_functions)
-
-        # Build context
         context = self.build_analysis_context(target_function, related_functions)
-
-        # Create prompt
         prompt = create_analysis_prompt(context)
-
-        # Call LLM
         llm_response = self.call_openai_api(prompt)
-
-        # Parse response into metrics
         llm_metrics = LLMComplexityMetrics(
             semantic_complexity=llm_response.get("semantic_complexity", 5),
             cognitive_load=llm_response.get("cognitive_load", 5),
@@ -295,13 +293,10 @@ class LLMComplexityAnalyzer:
             suggestions=llm_response.get("suggestions", []),
         )
 
-        # Calculate final score
         final_score = self.calculate_final_score(
-            llm_metrics, target_function["total_complexity_score"]
+            llm_metrics, target_function["rule_analysis"]["rule_score"]
         )
-        llm_metrics.final_score = final_score
 
-        # Combine with original data
         enhanced_function = target_function.copy()
         enhanced_function.update(
             {
@@ -315,10 +310,9 @@ class LLMComplexityAnalyzer:
                     "business_description": llm_metrics.business_description,
                     "developer_description": llm_metrics.developer_description,
                     "suggestions": llm_metrics.suggestions,
-                    "final_score": llm_metrics.final_score,
+                    "llm_score": llm_metrics.llm_score,
                 },
                 "combined_complexity_score": final_score,
-                "related_functions_analyzed": len(related_functions),
             }
         )
 
@@ -333,16 +327,9 @@ class LLMComplexityAnalyzer:
         with open(complex_functions_file, "r") as f:
             all_functions = json.load(f)
 
-        if len(all_functions) == 0:
-            print("No functions found in input file")
-            return []
-
-        # Take top N functions
         top_functions = all_functions[:top_n]
 
         print(f"Starting LLM analysis of top {len(top_functions)} functions...")
-
-        # Analyze each function
         enhanced_results = []
         for i, func in enumerate(top_functions, 1):
             print(f"Progress: {i}/{len(top_functions)}")
@@ -373,58 +360,19 @@ def main():
         print("Please set OPENAI_API_KEY environment variable")
         return
 
-    MODEL = "gpt-3.5-turbo"  # or "gpt-4" or "gpt-4-turbo"
+    MODEL = "gpt-3.5-turbo"  # or "gpt-4" or "gpt-4-turbo" or "gpt-3.5-turbo"
     INPUT_FILE = "complex_functions.json"  # Output from Phase 1
     OUTPUT_FILE = "llm_analyzed_functions.json"
     TOP_N = 8  # Number of functions to analyze
     # TOP_N = 20
 
-    # Initialize analyzer
     analyzer = LLMComplexityAnalyzer(API_KEY, MODEL)
-
-    # Run analysis
-    try:
-        results = analyzer.analyze_top_functions(INPUT_FILE, TOP_N)
-
-        # Save results
-        with open(OUTPUT_FILE, "w") as f:
-            json.dump(results, f, indent=2)
-
-        # Print summary
-        print(f"\n{'=' * 80}")
-        print(f"LLM ANALYSIS COMPLETE - Top {len(results)} Functions")
-        print(f"{'=' * 80}")
-
-        for i, func in enumerate(results[:10], 1):  # Show top 10
-            llm = func.get("llm_analysis", {})
-            # Get file path - handle both file_path and file_url
-            file_path = func.get("file_path") or func.get("file_url", "unknown")
-            if file_path.startswith("file:///"):
-                file_path = file_path[8:].replace("/", os.sep)
-
-            print(
-                f"\n{i}. {func['function_name']} (Combined Score: {func.get('combined_complexity_score', 0):.2f})"
-            )
-            print(f"   File: {file_path}:{func['start_line']}")
-            print(f"   Structural Score: {func['total_complexity_score']:.2f}")
-            if "final_score" in llm:
-                print(f"   LLM Score: {llm['final_score']:.2f}")
-            if "explanation" in llm:
-                print(f"   Analysis: {llm['explanation']}")
-            if "business_description" in llm:
-                print(f"   Business Purpose: {llm['business_description']}")
-            if "developer_description" in llm:
-                print(f"   Technical Details: {llm['developer_description']}")
-            if "suggestions" in llm and llm["suggestions"]:
-                print(f"   Top Suggestion: {llm['suggestions'][0]}")
-
-        print(f"\nDetailed results saved to: {OUTPUT_FILE}")
-        print(f"API calls made: {len(results)}")
-
-    except FileNotFoundError:
-        print(f"Input file {INPUT_FILE} not found. Please run Phase 1 first.")
-    except Exception as e:
-        print(f"Error during analysis: {e}")
+    results = analyzer.analyze_top_functions(INPUT_FILE, TOP_N)
+    with open(OUTPUT_FILE, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"\n{'=' * 80}")
+    print(f"LLM ANALYSIS COMPLETE - Top {len(results)} Functions")
+    print(f"{'=' * 80}")
 
 
 if __name__ == "__main__":
