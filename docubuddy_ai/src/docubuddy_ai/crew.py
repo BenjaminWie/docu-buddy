@@ -32,12 +32,36 @@ class CodeExplainBuddy:
             verbose=True
         )
 
+    def format_segmented_code(self, segments):
+        """Format list output from code_segmenter into a readable string."""
+        if isinstance(segments, list):
+            formatted_parts = []
+            for segment in segments:
+                segment_type = segment.get('type', 'Unknown').capitalize()
+                name = segment.get('name', 'Unnamed')
+                code_block = segment.get('code', '')
+                header = f"### {segment_type}: {name}\n"
+                formatted_parts.append(f"{header}{code_block}\n")
+            return "\n".join(formatted_parts)
+        return segments  # Already a string, no problem
+
     @task
     def analyze_code_task(self) -> Task:
         """Task 1: Analyze code into components"""
-        return Task(
+        base_task = Task(
             config=self.tasks_config['task1'],
         )
+
+        def wrapper(inputs: dict, context: dict) -> dict:
+            # Run original task
+            result = base_task.run(inputs=inputs, context=context)
+            # Post-process segmented_code
+            if 'segmented_code' in result:
+                result['segmented_code'] = self.format_segmented_code(result['segmented_code'])
+            return result
+        
+        base_task.run = wrapper  # override the run method
+        return base_task
 
     @task
     def explain_code_developer_task(self) -> Task:
@@ -53,36 +77,12 @@ class CodeExplainBuddy:
             config=self.tasks_config['task3'],
         )
 
-    def format_segmented_code(self, segments):
-        """Format list output from code_segmenter into a readable string."""
-        if isinstance(segments, list):
-            formatted_parts = []
-            for segment in segments:
-                segment_type = segment.get('type', 'Unknown').capitalize()
-                name = segment.get('name', 'Unnamed')
-                code_block = segment.get('code', '')
-                header = f"### {segment_type}: {name}\n"
-                formatted_parts.append(f"{header}{code_block}\n")
-            return "\n".join(formatted_parts)
-        # If already a string, return as is
-        return segments
-
     @crew
     def crew(self) -> Crew:
         """Create the crew with agents and tasks."""
         return Crew(
             agents=self.agents,
             tasks=self.tasks,
-            process=Process.sequential,
+            process=Process.sequential,  # Run tasks sequentially
             verbose=True,
-            post_process=self._post_process_outputs  # Added post-process hook
         )
-
-    def _post_process_outputs(self, outputs):
-        """
-        This method is called after each task execution.
-        It ensures that segmented_code is a properly formatted string before passing to next tasks.
-        """
-        if 'segmented_code' in outputs:
-            outputs['segmented_code'] = self.format_segmented_code(outputs['segmented_code'])
-        return outputs
