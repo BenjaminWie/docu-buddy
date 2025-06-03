@@ -46,6 +46,10 @@ Rate each aspect on a 1-10 scale. BE SPECIFIC and use the FULL RANGE of scores:
    - 7-8: Should be refactored soon, causing some problems
    - 9-10: Critical refactoring needed immediately, major technical debt
 
+6. **Function Descriptions**: Provide two different explanations of what this function does:
+   - **Business Description**: Explain in simple, non-technical terms what business purpose this function serves. Focus on WHAT it accomplishes from a user/business perspective, avoiding technical jargon.
+   - **Developer Description**: Provide a technical explanation of HOW the function works, including key algorithms, data structures, design patterns, and implementation details.
+
 **CALIBRATION GUIDANCE:**
 - Look at the structural metrics provided - they give you baseline complexity indicators
 - A function with cyclomatic complexity of 15+ should likely get higher semantic scores
@@ -62,6 +66,8 @@ Please respond with ONLY the JSON (no other text):
     "documentation_quality": <number 1-10>,
     "refactoring_urgency": <number 1-10>,
     "explanation": "<2-3 sentence explanation of the main complexity drivers and why you gave these specific scores>",
+    "business_description": "<Simple explanation of what this function does from a business perspective, avoiding technical terms>",
+    "developer_description": "<Technical explanation of how the function works, including key implementation details and patterns>",
     "suggestions": [
         "<specific actionable suggestion 1>",
         "<specific actionable suggestion 2>",

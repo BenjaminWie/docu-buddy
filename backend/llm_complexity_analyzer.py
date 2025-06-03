@@ -25,6 +25,8 @@ class LLMComplexityMetrics:
     refactoring_urgency: int = 0  # 1-10 scale
     explanation: str = ""
     suggestions: List[str] = None
+    business_description: str = ""  # New field
+    developer_description: str = ""  # New field
     final_score: float = 0.0
 
     def __post_init__(self):
@@ -233,6 +235,8 @@ class LLMComplexityAnalyzer:
             "documentation_quality": 5,
             "refactoring_urgency": 5,
             "explanation": "API analysis failed - using fallback scores",
+            "business_description": "Function purpose could not be determined due to API failure",
+            "developer_description": "Technical analysis unavailable due to API failure",
             "suggestions": [
                 "Review this function manually",
                 "Consider refactoring",
@@ -286,6 +290,8 @@ class LLMComplexityAnalyzer:
             documentation_quality=llm_response.get("documentation_quality", 5),
             refactoring_urgency=llm_response.get("refactoring_urgency", 5),
             explanation=llm_response.get("explanation", ""),
+            business_description=llm_response.get("business_description", ""),
+            developer_description=llm_response.get("developer_description", ""),
             suggestions=llm_response.get("suggestions", []),
         )
 
@@ -306,6 +312,8 @@ class LLMComplexityAnalyzer:
                     "documentation_quality": llm_metrics.documentation_quality,
                     "refactoring_urgency": llm_metrics.refactoring_urgency,
                     "explanation": llm_metrics.explanation,
+                    "business_description": llm_metrics.business_description,
+                    "developer_description": llm_metrics.developer_description,
                     "suggestions": llm_metrics.suggestions,
                     "final_score": llm_metrics.final_score,
                 },
@@ -403,6 +411,10 @@ def main():
                 print(f"   LLM Score: {llm['final_score']:.2f}")
             if "explanation" in llm:
                 print(f"   Analysis: {llm['explanation']}")
+            if "business_description" in llm:
+                print(f"   Business Purpose: {llm['business_description']}")
+            if "developer_description" in llm:
+                print(f"   Technical Details: {llm['developer_description']}")
             if "suggestions" in llm and llm["suggestions"]:
                 print(f"   Top Suggestion: {llm['suggestions'][0]}")
 
