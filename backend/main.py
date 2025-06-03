@@ -1,10 +1,13 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 import os
 from typing import List, Optional
-from backend.developer_QA import get_developer_qa
+
+from download_github_repo import download_github_repo_zip
+from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, HttpUrl
+
 from backend.business_QA import get_business_qa
+from backend.developer_QA import get_developer_qa
 
 app = FastAPI(
     title="My API",
@@ -39,8 +42,14 @@ class ItemResponse(BaseModel):
     name: str
     description: Optional[str] = None
 
+
 class Developer(BaseModel):
-    user_query: str    
+    user_query: str
+
+
+class GitHubRepoRequest(BaseModel):
+    url: HttpUrl
+
 
 # Routes
 @app.get("/")
@@ -57,12 +66,20 @@ async def root():
     }
 
 
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "environment": os.getenv("RAILWAY_ENVIRONMENT", "local"),
-    }
+@app.post("/download-repo")
+def download_repo(payload: GitHubRepoRequest):
+    try:
+        parts = payload.url.strip("/").split("/")
+        if len(parts) < 5 or "github.com" not in parts[2]:
+            raise ValueError("Invalid GitHub URL format")
+
+        owner = parts[3]
+        repo = parts[4].replace(".git", "")
+        dest_path = download_github_repo_zip(owner, repo)
+
+        return {"message": "Repository downloaded successfully", "path": dest_path}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.get("/items", response_model=List[ItemResponse])
@@ -97,6 +114,7 @@ async def delete_item(item_id: int):
 
     return {"message": f"Item {item_id} deleted successfully"}
 
+
 @app.post("/developer", status_code=status.HTTP_201_CREATED)
 def get_developer_response(user_query: Developer) -> str:
     """
@@ -125,11 +143,12 @@ def get_developer_response(user_query: Developer) -> str:
             else:
                 return False
     """
-    
+
     response = get_developer_qa({"code_text": code_text, "user_query": user_query})
     if not response:
         raise HTTPException(status_code=400, detail="Invalid query or code text")
     return response
+
 
 @app.post("/business", status_code=status.HTTP_201_CREATED)
 def get_developer_response(user_query: Developer) -> str:
@@ -159,11 +178,12 @@ def get_developer_response(user_query: Developer) -> str:
             else:
                 return False
     """
-    
+
     response = get_business_qa({"code_text": code_text, "user_query": user_query})
     if not response:
         raise HTTPException(status_code=400, detail="Invalid query or code text")
     return response
+
 
 if __name__ == "__main__":
     import uvicorn
