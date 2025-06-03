@@ -1,13 +1,13 @@
 task1:
   agent: code_segmenter
   description: >
-    Receive the raw code text. Analyze the code and segment it into classes, functions, and logical parts.
-    Return a properly formatted string that clearly separates each code segment with annotations 
-    (e.g., "### Function: <name>", "### Class: <name>") to ensure readability and ease of further explanation.
+    Take the raw code text as input and enhance it by injecting well-written docstrings into each function and class.
+    The code structure must remain unchanged. Only add or improve docstrings based on the logic of the code.
+    Return the entire updated code as a single string.
   inputs:
     - code_text
   expected_output:
-    - segmented_code  # formatted string breakdown of the code
+    - explained_code  # The original code enriched with meaningful docstrings
 
 
 task2:
@@ -17,7 +17,7 @@ task2:
     Provide a detailed technical explanation highlighting logic, algorithms, structure, and best practices per code component.
     Focus on developer needs and insights.
   inputs:
-    - segmented_code
+    - explained_code
     - user_prompt
   expected_output:
     - developer_explanation  # technical detailed explanations
@@ -29,7 +29,7 @@ task3:
     Provide a business-focused explanation interpreting the purpose and value of each code component.
     Highlight business impact, operational importance, and benefits in a non-technical way.
   inputs:
-    - segmented_code
+    - explained_code
     - user_prompt
   expected_output:
     - business_explanation  # business-level understandable explanations
