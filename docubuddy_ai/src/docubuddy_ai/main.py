@@ -4,7 +4,7 @@ import warnings
 
 from datetime import datetime
 
-from ai.crew import Ai
+from crew import DocubuddyAi
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
@@ -23,7 +23,8 @@ def run():
     }
     
     try:
-        Ai().crew().kickoff(inputs=inputs)
+        DocubuddyAi().crew().kickoff(inputs=inputs)
+        print("Crew execution completed successfully.")
     except Exception as e:
         raise Exception(f"An error occurred while running the crew: {e}")
 
@@ -37,7 +38,7 @@ def train():
         'current_year': str(datetime.now().year)
     }
     try:
-        Ai().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
+        DocubuddyAi().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
 
     except Exception as e:
         raise Exception(f"An error occurred while training the crew: {e}")
@@ -47,7 +48,7 @@ def replay():
     Replay the crew execution from a specific task.
     """
     try:
-        Ai().crew().replay(task_id=sys.argv[1])
+        DocubuddyAi().crew().replay(task_id=sys.argv[1])
 
     except Exception as e:
         raise Exception(f"An error occurred while replaying the crew: {e}")
@@ -62,7 +63,7 @@ def test():
     }
     
     try:
-        Ai().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
+        DocubuddyAi().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
 
     except Exception as e:
         raise Exception(f"An error occurred while testing the crew: {e}")
