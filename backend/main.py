@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 from typing import List, Optional
+from backend.developer_QA import get_developer_qa
+from backend.business_QA import get_business_qa
 
 app = FastAPI(
     title="My API",
@@ -37,6 +39,8 @@ class ItemResponse(BaseModel):
     name: str
     description: Optional[str] = None
 
+class Developer(BaseModel):
+    user_query: str    
 
 # Routes
 @app.get("/")
@@ -93,6 +97,73 @@ async def delete_item(item_id: int):
 
     return {"message": f"Item {item_id} deleted successfully"}
 
+@app.post("/developer", status_code=status.HTTP_201_CREATED)
+def get_developer_response(user_query: Developer) -> str:
+    """
+    Simulated function to analyze code and respond to queries.
+    In a real application, this would call an LLM or other analysis tool.
+    """
+    # Placeholder response
+    # the relevant code text should be queried from the vector database using RAG based on the user_query
+    code_text = """
+    class BankAccount:
+        def __init__(self, account_holder, balance=0):
+            self.account_holder = account_holder
+            self.balance = balance
+
+        def deposit(self, amount):
+            if amount > 0:
+                self.balance += amount
+                return True
+            else:
+                return False
+
+        def withdraw(self, amount):
+            if 0 < amount <= self.balance:
+                self.balance -= amount
+                return True
+            else:
+                return False
+    """
+    
+    response = get_developer_qa({"code_text": code_text, "user_query": user_query})
+    if not response:
+        raise HTTPException(status_code=400, detail="Invalid query or code text")
+    return response
+
+@app.post("/business", status_code=status.HTTP_201_CREATED)
+def get_developer_response(user_query: Developer) -> str:
+    """
+    Simulated function to analyze code and respond to queries.
+    In a real application, this would call an LLM or other analysis tool.
+    """
+    # Placeholder response
+    # the relevant code text should be queried from the vector database using RAG based on the user_query
+    code_text = """
+    class BankAccount:
+        def __init__(self, account_holder, balance=0):
+            self.account_holder = account_holder
+            self.balance = balance
+
+        def deposit(self, amount):
+            if amount > 0:
+                self.balance += amount
+                return True
+            else:
+                return False
+
+        def withdraw(self, amount):
+            if 0 < amount <= self.balance:
+                self.balance -= amount
+                return True
+            else:
+                return False
+    """
+    
+    response = get_business_qa({"code_text": code_text, "user_query": user_query})
+    if not response:
+        raise HTTPException(status_code=400, detail="Invalid query or code text")
+    return response
 
 if __name__ == "__main__":
     import uvicorn
