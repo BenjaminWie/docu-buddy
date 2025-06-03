@@ -34,31 +34,14 @@ class CodeComplexityAnalyzer:
                 "extensions": [".py"],
                 "function_pattern": r"^\s*def\s+(\w+)\s*\(",
                 "class_pattern": r"^\s*class\s+(\w+)",
-                "branching_keywords": [
-                    "if",
-                    "elif",
-                    "for",
-                    "while",
-                    "try",
-                    "except",
-                    "with",
-                ],
+                "branching_keywords": ["if", "elif", "for", "while", "try", "except", "with"],
                 "comment_patterns": [r"#.*", r'"""[\s\S]*?"""', r"'''[\s\S]*?'''"],
             },
             "java": {
                 "extensions": [".java"],
                 "function_pattern": r"\b(?:public|private|protected)?\s*(?:static)?\s*\w+\s+(\w+)\s*\(",
                 "class_pattern": r"\b(?:public|private)?\s*class\s+(\w+)",
-                "branching_keywords": [
-                    "if",
-                    "else",
-                    "for",
-                    "while",
-                    "switch",
-                    "case",
-                    "try",
-                    "catch",
-                ],
+                "branching_keywords": ["if", "else", "for", "while", "switch", "case", "try", "catch"],
                 "comment_patterns": [r"//.*", r"/\*[\s\S]*?\*/"],
             },
             "go": {
@@ -72,32 +55,14 @@ class CodeComplexityAnalyzer:
                 "extensions": [".cs"],
                 "function_pattern": r"\b(?:public|private|protected)?\s*(?:static)?\s*\w+\s+(\w+)\s*\(",
                 "class_pattern": r"\b(?:public|private)?\s*class\s+(\w+)",
-                "branching_keywords": [
-                    "if",
-                    "else",
-                    "for",
-                    "while",
-                    "switch",
-                    "case",
-                    "try",
-                    "catch",
-                ],
+                "branching_keywords": ["if", "else", "for", "while", "switch", "case", "try", "catch"],
                 "comment_patterns": [r"//.*", r"/\*[\s\S]*?\*/"],
             },
             "cpp": {
                 "extensions": [".cpp", ".cc", ".cxx", ".c", ".h", ".hpp"],
                 "function_pattern": r"\b\w+\s+(\w+)\s*\([^)]*\)\s*{",
                 "class_pattern": r"\bclass\s+(\w+)",
-                "branching_keywords": [
-                    "if",
-                    "else",
-                    "for",
-                    "while",
-                    "switch",
-                    "case",
-                    "try",
-                    "catch",
-                ],
+                "branching_keywords": ["if", "else", "for", "while", "switch", "case", "try", "catch"],
                 "comment_patterns": [r"//.*", r"/\*[\s\S]*?\*/"],
             },
         }
@@ -114,58 +79,7 @@ class CodeComplexityAnalyzer:
 
     def should_skip_directory(self, dirpath: str) -> bool:
         """Check if directory should be skipped (infrastructure/non-code directories)"""
-        skip_dirs = {
-            ".git",
-            ".svn",
-            ".hg",
-            ".bzr",  # Version control
-            "node_modules",
-            "bower_components",  # JavaScript dependencies
-            "vendor",
-            "packages",  # PHP/other dependencies
-            ".gradle",
-            ".maven",
-            "target",
-            "build",  # Build directories
-            "bin",
-            "obj",
-            "out",  # Compiled output
-            ".vscode",
-            ".idea",
-            ".eclipse",  # IDE files
-            "__pycache__",
-            ".pytest_cache",
-            ".mypy_cache",  # Python cache
-            "venv",
-            "env",
-            ".env",
-            "virtualenv",  # Python virtual environments
-            "dist",
-            "coverage",
-            ".nyc_output",  # Distribution/coverage
-            "logs",
-            "log",
-            "tmp",
-            "temp",  # Temporary files
-            ".docker",
-            "docker-compose",  # Docker (unless you want to analyze Dockerfiles)
-            ".terraform",
-            ".aws",  # Infrastructure as code
-            "migrations",  # Database migrations (usually generated)
-            "assets",
-            "static",
-            "public",
-            "resources",  # Static assets
-            "docs",
-            "documentation",
-            "wiki",  # Documentation
-            "test",
-            "tests",
-            "spec",
-            "specs",  # Test directories (optional - you might want these)
-            ".settings",
-            ".metadata",  # IDE settings
-        }
+        skip_dirs = {".git", ".svn", ".hg", ".bzr", "node_modules", "bower_components", "vendor", "packages", ".gradle", ".maven", "target", "build", "bin", "obj", "out", ".vscode", ".idea", ".eclipse", "__pycache__", ".pytest_cache", ".mypy_cache", "venv", "env", ".env", "virtualenv", "dist", "coverage", ".nyc_output", "logs", "log", "tmp", "temp", ".docker", "docker-compose", ".terraform", ".aws", "migrations", "assets", "static", "public", "resources", "docs", "documentation", "wiki", "test", "tests", "spec", "specs", ".settings", ".metadata"}
 
         dir_name = os.path.basename(dirpath.rstrip(os.sep))
         return dir_name in skip_dirs or dir_name.startswith(".")
@@ -175,145 +89,14 @@ class CodeComplexityAnalyzer:
         filename = os.path.basename(filepath).lower()
 
         # Skip common infrastructure and config files
-        skip_files = {
-            # Build and dependency files
-            "package.json",
-            "package-lock.json",
-            "yarn.lock",
-            "pom.xml",
-            "build.gradle",
-            "settings.gradle",
-            "gradle.properties",
-            "build.xml",
-            "ivy.xml",
-            "makefile",
-            "cmake",
-            "cmakecache.txt",
-            "requirements.txt",
-            "pipfile",
-            "pipfile.lock",
-            "poetry.lock",
-            "composer.json",
-            "composer.lock",
-            "gemfile",
-            "gemfile.lock",
-            # Configuration files
-            ".gitignore",
-            ".gitattributes",
-            ".gitmodules",
-            ".dockerignore",
-            "dockerfile",
-            "readme.md",
-            "readme.txt",
-            "readme.rst",
-            "license",
-            "license.txt",
-            "license.md",
-            "changelog.md",
-            "changelog.txt",
-            "contributing.md",
-            "code_of_conduct.md",
-            # IDE and editor files
-            ".editorconfig",
-            ".eslintrc",
-            ".prettierrc",
-            "tsconfig.json",
-            "jsconfig.json",
-            ".babelrc",
-            "webpack.config.js",
-            # CI/CD files
-            ".travis.yml",
-            ".circleci",
-            "appveyor.yml",
-            "jenkinsfile",
-            ".github",
-            # Database and migration files
-            "schema.sql",
-            "seeds.sql",
-            # Other common non-code files
-            "todo.txt",
-            "notes.txt",
-            "manifest.mf",
-            "meta-inf",
-        }
+        skip_files = {"package.json", "package-lock.json", "yarn.lock", "pom.xml", "build.gradle", "settings.gradle", "gradle.properties", "build.xml", "ivy.xml", "makefile", "cmake", "cmakecache.txt", "requirements.txt", "pipfile", "pipfile.lock", "poetry.lock", "composer.json", "composer.lock", "gemfile", "gemfile.lock", ".gitignore", ".gitattributes", ".gitmodules", ".dockerignore", "dockerfile", "readme.md", "readme.txt", "readme.rst", "license", "license.txt", "license.md", "changelog.md", "changelog.txt", "contributing.md", "code_of_conduct.md", ".editorconfig", ".eslintrc", ".prettierrc", "tsconfig.json", "jsconfig.json", ".babelrc", "webpack.config.js", ".travis.yml", ".circleci", "appveyor.yml", "jenkinsfile", ".github", "schema.sql", "seeds.sql", "todo.txt", "notes.txt", "manifest.mf", "meta-inf"}
 
         # Check exact filename matches
         if filename in skip_files:
             return True
 
         # Check file extensions for non-code files
-        skip_extensions = {
-            # Documentation and text
-            ".md",
-            ".txt",
-            ".rst",
-            ".pdf",
-            ".doc",
-            ".docx",
-            # Configuration and data
-            ".json",
-            ".xml",
-            ".yaml",
-            ".yml",
-            ".ini",
-            ".cfg",
-            ".conf",
-            ".properties",
-            ".env",
-            ".local",
-            # Images and media
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".gif",
-            ".svg",
-            ".ico",
-            ".bmp",
-            ".mp3",
-            ".mp4",
-            ".avi",
-            ".mov",
-            ".wav",
-            # Archives and binaries
-            ".zip",
-            ".tar",
-            ".gz",
-            ".7z",
-            ".rar",
-            ".exe",
-            ".dll",
-            ".so",
-            ".dylib",
-            ".jar",
-            ".war",
-            ".ear",  # Keep .jar if you want to analyze Java
-            # Database files
-            ".db",
-            ".sqlite",
-            ".sqlite3",
-            ".mdb",
-            # Logs and temporary
-            ".log",
-            ".tmp",
-            ".temp",
-            ".cache",
-            # Certificates and keys
-            ".pem",
-            ".key",
-            ".crt",
-            ".cert",
-            # Specific non-code files
-            ".g4",  # ANTLR grammars
-            ".sh",
-            ".bash",
-            ".zsh",
-            ".fish",
-            ".bat",
-            ".cmd",  # Shell scripts
-            ".ps1",
-            ".psm1",  # PowerShell
-            ".lock",  # Lock files
-        }
+        skip_extensions = {".md", ".txt", ".rst", ".pdf", ".doc", ".docx", ".json", ".xml", ".yaml", ".yml", ".ini", ".cfg", ".conf", ".properties", ".env", ".local", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".bmp", ".mp3", ".mp4", ".avi", ".mov", ".wav", ".zip", ".tar", ".gz", ".7z", ".rar", ".exe", ".dll", ".so", ".dylib", ".jar", ".war", ".ear", ".db", ".sqlite", ".sqlite3", ".mdb", ".log", ".tmp", ".temp", ".cache", ".pem", ".key", ".crt", ".cert", ".g4", ".sh", ".bash", ".zsh", ".fish", ".bat", ".cmd", ".ps1", ".psm1", ".lock"}
 
         ext = Path(filepath).suffix.lower()
         return ext in skip_extensions
