@@ -63,5 +63,5 @@ class CodeExplainBuddy:
             agents=self.agents,
             tasks=self.tasks,
             process=Process.sequential,  # Run tasks in order (segment first, then explain)
-            verbose=True,
+            verbose=True
         )
