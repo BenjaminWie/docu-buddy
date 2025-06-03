@@ -3,4 +3,8 @@ uvicorn[standard]==0.24.0
 pydantic==2.5.0
 pathlib
 openai
+langchain-core
+langchain-openai
+langchain-community
+python-dotenv
 supabase
