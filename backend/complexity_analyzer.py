@@ -626,10 +626,17 @@ class CodeComplexityAnalyzer:
 
                     for func in functions:
                         metrics = self.analyze_function(func)
+                        rel_path = os.path.relpath(filepath, root_path).replace(
+                            "\\", "/"
+                        )
+                        file_url = f"file:///{filepath}"
+                        # github_repo_url should be passed in or set globally
+                        github_url = f"{self.github_repo_url}{rel_path}#L{func['start_line']}-L{func['end_line']}"
 
                         result = {
                             "function_name": func["name"],
-                            "file_path": filepath,
+                            "file_url": file_url,
+                            "github_url": github_url,
                             "start_line": func["start_line"],
                             "end_line": func["end_line"],
                             "language": language,
@@ -643,7 +650,6 @@ class CodeComplexityAnalyzer:
                                 "documentation_score": metrics.documentation_score,
                             },
                         }
-
                         results.append(result)
 
                 except Exception as e:
@@ -664,7 +670,7 @@ def main():
     # codebase_path = "/home/username/path/to/cloned/repo"        # Linux/Mac
 
     # Add your GitHub repo URL here (ensure trailing slash, and path after 'blob/main/' matches your repo structure)
-    github_repo_url = "https://github.com/openrewrite/rewrite/blob/main/"
+    analyzer.github_repo_url = "https://github.com/openrewrite/rewrite/blob/main/"
 
     print(f"Analyzing codebase at: {codebase_path}")
     top_complex_functions = analyzer.analyze_codebase(codebase_path)
@@ -674,19 +680,13 @@ def main():
     print("=" * 80)
 
     for i, func in enumerate(top_complex_functions, 1):
-        # Get relative path for GitHub link
-        rel_path = os.path.relpath(func["file_path"], codebase_path).replace("\\", "/")
-        github_url = (
-            f"{github_repo_url}{rel_path}#L{func['start_line']}-L{func['end_line']}"
-        )
-        file_url = f"file:///{func['file_path']}"
-
         print(
             f"{i}. {func['function_name']} (Score: {func['total_complexity_score']:.2f})"
         )
-        print(f"   File: {func['file_path']}:{func['start_line']}-{func['end_line']}")
-        print(f"   File URL: {file_url}")
-        print(f"   GitHub URL: {github_url}")
+        print(
+            f"   File URL: {func['file_url']}:{func['start_line']}-{func['end_line']}"
+        )
+        print(f"   GitHub URL: {func['github_url']}")
         print(f"   Language: {func['language']}")
         print("   Complexity Breakdown:")
         for reason, score in func["reason_for_complexity"].items():
@@ -694,7 +694,7 @@ def main():
         print()
 
     # Print summary statistics
-    total_files_analyzed = len(set(func["file_path"] for func in top_complex_functions))
+    total_files_analyzed = len(set(func["file_url"] for func in top_complex_functions))
     languages_found = set(func["language"] for func in top_complex_functions)
 
     print(f"\nAnalysis Summary:")
@@ -704,14 +704,6 @@ def main():
 
     # Save results to JSON for further processing
     import json
-
-    # Add GitHub and file URLs to the JSON output
-    for func in top_complex_functions:
-        rel_path = os.path.relpath(func["file_path"], codebase_path).replace("\\", "/")
-        func["file_url"] = f"file:///{func['file_path']}"
-        func["github_url"] = (
-            f"{github_repo_url}{rel_path}#L{func['start_line']}-L{func['end_line']}"
-        )
 
     with open("complex_functions.json", "w") as f:
         json.dump(top_complex_functions, f, indent=2)
