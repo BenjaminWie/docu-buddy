@@ -675,40 +675,49 @@ def main():
     print(f"Analyzing codebase at: {codebase_path}")
     top_complex_functions = analyzer.analyze_codebase(codebase_path)
 
-    # Print results
-    print(f"Top {len(top_complex_functions)} most complex functions:")
-    print("=" * 80)
+    output = f"""
+Top {len(top_complex_functions)} most complex functions:
+{'=' * 80}
+
+"""
 
     for i, func in enumerate(top_complex_functions, 1):
-        print(
-            f"{i}. {func['function_name']} (Score: {func['total_complexity_score']:.2f})"
+        complexity_breakdown = "\n".join(
+            [
+                f"     - {reason}: {score}"
+                for reason, score in func["reason_for_complexity"].items()
+            ]
         )
-        print(
-            f"   File URL: {func['file_url']}:{func['start_line']}-{func['end_line']}"
-        )
-        print(f"   GitHub URL: {func['github_url']}")
-        print(f"   Language: {func['language']}")
-        print("   Complexity Breakdown:")
-        for reason, score in func["reason_for_complexity"].items():
-            print(f"     - {reason}: {score}")
-        print()
 
-    # Print summary statistics
+        output += f"""{i}. {func['function_name']} (Score: {func['total_complexity_score']:.2f})
+   File URL: {func['file_url']}:{func['start_line']}-{func['end_line']}
+   GitHub URL: {func['github_url']}
+   Language: {func['language']}
+   Complexity Breakdown:
+{complexity_breakdown}
+
+"""
+
+    print(output)
+
     total_files_analyzed = len(set(func["file_url"] for func in top_complex_functions))
     languages_found = set(func["language"] for func in top_complex_functions)
 
-    print(f"\nAnalysis Summary:")
-    print(f"Files analyzed: {total_files_analyzed}")
-    print(f"Languages found: {', '.join(sorted(languages_found))}")
-    print(f"Functions analyzed: {len(top_complex_functions)}")
+    summary = f"""
+Analysis Summary:
+Files analyzed: {total_files_analyzed}
+Languages found: {', '.join(sorted(languages_found))}
+Functions analyzed: {len(top_complex_functions)}
 
-    # Save results to JSON for further processing
+Results saved to complex_functions.json
+"""
+
+    print(summary)
+
     import json
 
     with open("complex_functions.json", "w") as f:
         json.dump(top_complex_functions, f, indent=2)
-
-    print(f"Results saved to complex_functions.json")
 
 
 if __name__ == "__main__":
