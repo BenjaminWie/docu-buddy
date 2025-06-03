@@ -4,6 +4,11 @@ task1:
     Receive the raw code text and compliance information from the vector database.
     Analyze the code, segment it into classes, functions, and logical parts.
     Return a structured breakdown of the code components with annotations.
+  inputs:
+    - code_text
+    - compliance_info
+  expected_output:
+    - code_components  # what this task produces
 
 task2:
   agent: compliance_checker
@@ -11,6 +16,11 @@ task2:
     Take the segmented code components and compliance info.
     Evaluate each component against compliance requirements.
     Provide detailed feedback highlighting compliance issues, risks, or improvements per component.
+  inputs:
+    - code_components
+    - compliance_info
+  expected_output:
+    - compliance_feedback
 
 task3:
   agent: doc_writer
@@ -18,3 +28,9 @@ task3:
     Using the code segments and compliance feedback, generate detailed documentation and a README file.
     The documentation should include explanations and compliance notes for each component.
     The README should summarize the entire codebase, highlight key compliance feedback, and provide clear guidance for users.
+  inputs:
+    - code_components
+    - compliance_feedback
+  expected_output:
+    - documentation
+    - readme_text
