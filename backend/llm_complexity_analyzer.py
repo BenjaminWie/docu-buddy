@@ -5,10 +5,12 @@ Uses OpenAI API to provide semantic complexity analysis of the top complex funct
 """
 
 import json
-import re
 import os
-from typing import Dict, List, Any
+import re
 from dataclasses import dataclass
+from typing import Any, Dict, List
+
+from llm_prompt import create_analysis_prompt
 from openai import OpenAI
 
 
@@ -56,6 +58,20 @@ class LLMComplexityAnalyzer:
             "go": r"\b(\w+)\s*\(",
         }
 
+    def get_file_path(self, function_data: Dict[str, Any]) -> str:
+        """Extract file path from function data, handling both file_path and file_url"""
+        if "file_path" in function_data:
+            return function_data["file_path"]
+        elif "file_url" in function_data:
+            # Convert file URL to path
+            file_url = function_data["file_url"]
+            if file_url.startswith("file:///"):
+                # Remove file:/// prefix and convert to normal path
+                return file_url[8:].replace("/", os.sep)
+            return file_url
+        else:
+            return "unknown"
+
     def extract_function_calls(self, code: str, language: str) -> List[str]:
         """Extract function calls from code"""
         if language not in self.dependency_patterns:
@@ -102,14 +118,18 @@ class LLMComplexityAnalyzer:
             target_function["function_content"], target_function["language"]
         )
 
+        # Get file paths
+        target_file_path = self.get_file_path(target_function)
+
         # Find matching functions in the codebase
         related = []
         for func in all_functions:
             if func["function_name"] in called_functions:
+                func_file_path = self.get_file_path(func)
                 # Limit to same file or same package for relevance
-                if func["file_path"] == target_function["file_path"] or os.path.dirname(
-                    func["file_path"]
-                ) == os.path.dirname(target_function["file_path"]):
+                if func_file_path == target_file_path or os.path.dirname(
+                    func_file_path
+                ) == os.path.dirname(target_file_path):
                     related.append(func)
 
         # Limit to top 5 most relevant dependencies
@@ -125,7 +145,7 @@ class LLMComplexityAnalyzer:
         # Add target function
         context_parts.append("=== TARGET FUNCTION FOR ANALYSIS ===")
         context_parts.append(f"Function: {target_function['function_name']}")
-        context_parts.append(f"File: {target_function['file_path']}")
+        context_parts.append(f"File: {self.get_file_path(target_function)}")
         context_parts.append(f"Language: {target_function['language']}")
         context_parts.append(
             f"Lines: {target_function['start_line']}-{target_function['end_line']}"
@@ -137,8 +157,16 @@ class LLMComplexityAnalyzer:
         context_parts.append(
             f"\nStructural Complexity Score: {target_function['total_complexity_score']:.2f}"
         )
-        context_parts.append("\n=== FUNCTION CODE ===")
-        context_parts.append(target_function["function_content"])
+
+        # Add function code if available
+        if target_function.get("function_content"):
+            context_parts.append("\n=== FUNCTION CODE ===")
+            context_parts.append(target_function["function_content"])
+        else:
+            context_parts.append("\n=== FUNCTION CODE ===")
+            context_parts.append(
+                "(Function content not available - analyzing based on metrics only)"
+            )
 
         # Add related functions for context
         if related_functions:
@@ -147,83 +175,12 @@ class LLMComplexityAnalyzer:
                 context_parts.append(
                     f"\n--- Related Function {i}: {func['function_name']} ---"
                 )
-                context_parts.append(func["function_content"])
+                if func.get("function_content"):
+                    context_parts.append(func["function_content"])
+                else:
+                    context_parts.append("(Content not available)")
 
         return "\n".join(context_parts)
-
-    def create_analysis_prompt(self, context: str) -> str:
-        """Create the prompt for LLM analysis"""
-
-        prompt = f"""You are an expert code reviewer analyzing function complexity. Your goal is to provide DIFFERENTIATED ratings that distinguish between functions of varying complexity levels.
-
-CONTEXT:
-{context}
-
-ANALYSIS REQUIREMENTS:
-
-Rate each aspect on a 1-10 scale. BE SPECIFIC and use the FULL RANGE of scores:
-- Use 1-3 for simple/excellent code
-- Use 4-6 for moderate complexity  
-- Use 7-8 for high complexity
-- Use 9-10 for extremely complex/problematic code
-
-**IMPORTANT: Functions should receive DIFFERENT scores based on their actual complexity. Avoid giving similar ratings to all functions.**
-
-1. **Semantic Complexity** (1-10): How difficult is the logic to understand?
-   - 1-3: Simple logic, clear algorithm, minimal domain knowledge needed
-   - 4-6: Moderate logic with some complexity, reasonable algorithm
-   - 7-8: Complex business logic, intricate algorithms, domain expertise needed
-   - 9-10: Extremely complex logic, multiple interacting algorithms, expert-level domain knowledge
-
-2. **Cognitive Load** (1-10): How much mental effort to comprehend?
-   - 1-3: Easy to follow, minimal variable tracking, clear execution flow
-   - 4-6: Some mental effort needed, moderate state tracking
-   - 7-8: High mental effort, complex state management, difficult to trace execution
-   - 9-10: Overwhelming mental effort, too many variables/states to track
-
-3. **Maintainability** (1-10): How difficult would this be to modify safely?
-   - 1-3: Easy to change, well-isolated, good testability
-   - 4-6: Moderate change difficulty, some coupling
-   - 7-8: Risky to change, high coupling, hard to test
-   - 9-10: Extremely risky to modify, tightly coupled, change impact unpredictable
-
-4. **Documentation Quality** (1-10): How well documented is this code?
-   - 1-3: Excellent docs, clear comments, self-documenting
-   - 4-6: Adequate documentation, some gaps
-   - 7-8: Poor documentation, minimal comments
-   - 9-10: No meaningful documentation, completely unclear
-
-5. **Refactoring Urgency** (1-10): How urgently does this need refactoring?
-   - 1-3: No refactoring needed, well-structured
-   - 4-6: Minor improvements possible
-   - 7-8: Should be refactored soon, causing some problems
-   - 9-10: Critical refactoring needed immediately, major technical debt
-
-**CALIBRATION GUIDANCE:**
-- Look at the structural metrics provided - they give you baseline complexity indicators
-- A function with cyclomatic complexity of 15+ should likely get higher semantic scores
-- Functions with 100+ lines should get higher cognitive load scores
-- Functions with nesting depth 5+ should get higher maintainability concerns
-- Compare this function's complexity to what you'd expect from typical enterprise code
-
-Please respond with ONLY the JSON (no other text):
-{{
-    "semantic_complexity": <number 1-10>,
-    "cognitive_load": <number 1-10>,
-    "maintainability": <number 1-10>,
-    "documentation_quality": <number 1-10>,
-    "refactoring_urgency": <number 1-10>,
-    "explanation": "<2-3 sentence explanation of the main complexity drivers and why you gave these specific scores>",
-    "suggestions": [
-        "<specific actionable suggestion 1>",
-        "<specific actionable suggestion 2>",
-        "<specific actionable suggestion 3>"
-    ]
-}}
-
-Focus on what makes THIS SPECIFIC function more or less complex than average code."""
-
-        return prompt
 
     def call_openai_api(self, prompt: str) -> Dict[str, Any]:
         """Make API call to OpenAI"""
@@ -316,7 +273,7 @@ Focus on what makes THIS SPECIFIC function more or less complex than average cod
         context = self.build_analysis_context(target_function, related_functions)
 
         # Create prompt
-        prompt = self.create_analysis_prompt(context)
+        prompt = create_analysis_prompt(context)
 
         # Call LLM
         llm_response = self.call_openai_api(prompt)
@@ -426,16 +383,21 @@ def main():
             json.dump(results, f, indent=2)
 
         # Print summary
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"LLM ANALYSIS COMPLETE - Top {len(results)} Functions")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
 
         for i, func in enumerate(results[:10], 1):  # Show top 10
             llm = func.get("llm_analysis", {})
+            # Get file path - handle both file_path and file_url
+            file_path = func.get("file_path") or func.get("file_url", "unknown")
+            if file_path.startswith("file:///"):
+                file_path = file_path[8:].replace("/", os.sep)
+
             print(
                 f"\n{i}. {func['function_name']} (Combined Score: {func.get('combined_complexity_score', 0):.2f})"
             )
-            print(f"   File: {func['file_path']}:{func['start_line']}")
+            print(f"   File: {file_path}:{func['start_line']}")
             print(f"   Structural Score: {func['total_complexity_score']:.2f}")
             if "final_score" in llm:
                 print(f"   LLM Score: {llm['final_score']:.2f}")

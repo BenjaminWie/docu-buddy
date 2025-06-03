@@ -171,6 +171,7 @@ class CodeComplexityAnalyzer:
 
             elif in_function and current_function:
                 current_function["content"].append(line)
+                current_function["end_line"] = i + 1
                 
                 # Track braces to find function end
                 brace_count += line.count("{") - line.count("}")
@@ -183,14 +184,12 @@ class CodeComplexityAnalyzer:
                         and not line.startswith("\t")
                     ):
                         if not re.match(r"^\s*(def|class|@)", line):
-                            current_function["end_line"] = i  # Set end_line before finishing
                             functions.append(current_function)
                             current_function = None
                             in_function = False
 
                 # For brace-based languages like Java
                 elif brace_count <= 0 and "{" in "".join(current_function["content"]):
-                    current_function["end_line"] = i + 1  # Set correct end_line
                     functions.append(current_function)
                     current_function = None
                     in_function = False
