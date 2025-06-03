@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# fmt: off
 """
 Phase 1: Structural Code Complexity Pre-Analysis
 Goal: Analyze codebase and rank functions/code parts by complexity
@@ -7,10 +8,9 @@ Output: Top 100 most complex code sections for further LLM analysis
 
 import os
 import re
-import ast
-from typing import Dict, List, Tuple, Any
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Dict, List
 
 
 @dataclass
@@ -79,7 +79,13 @@ class CodeComplexityAnalyzer:
 
     def should_skip_directory(self, dirpath: str) -> bool:
         """Check if directory should be skipped (infrastructure/non-code directories)"""
-        skip_dirs = {".git", ".svn", ".hg", ".bzr", "node_modules", "bower_components", "vendor", "packages", ".gradle", ".maven", "target", "build", "bin", "obj", "out", ".vscode", ".idea", ".eclipse", "__pycache__", ".pytest_cache", ".mypy_cache", "venv", "env", ".env", "virtualenv", "dist", "coverage", ".nyc_output", "logs", "log", "tmp", "temp", ".docker", "docker-compose", ".terraform", ".aws", "migrations", "assets", "static", "public", "resources", "docs", "documentation", "wiki", "test", "tests", "spec", "specs", ".settings", ".metadata"}
+        skip_dirs = {".git", ".svn", ".hg", ".bzr", "node_modules", "bower_components", "vendor", 
+                     "packages", ".gradle", ".maven", "target", "build", "bin", "obj", "out", ".vscode",
+                     ".idea", ".eclipse", "__pycache__", ".pytest_cache", ".mypy_cache", "venv", "env", 
+                     ".env", "virtualenv", "dist", "coverage", ".nyc_output", "logs", "log", "tmp", 
+                     "temp", ".docker", "docker-compose", ".terraform", ".aws", "migrations", "assets", 
+                     "static", "public", "resources", "docs", "documentation", "wiki", "test", "tests",
+                     "spec", "specs", ".settings", ".metadata"}
 
         dir_name = os.path.basename(dirpath.rstrip(os.sep))
         return dir_name in skip_dirs or dir_name.startswith(".")
@@ -89,14 +95,30 @@ class CodeComplexityAnalyzer:
         filename = os.path.basename(filepath).lower()
 
         # Skip common infrastructure and config files
-        skip_files = {"package.json", "package-lock.json", "yarn.lock", "pom.xml", "build.gradle", "settings.gradle", "gradle.properties", "build.xml", "ivy.xml", "makefile", "cmake", "cmakecache.txt", "requirements.txt", "pipfile", "pipfile.lock", "poetry.lock", "composer.json", "composer.lock", "gemfile", "gemfile.lock", ".gitignore", ".gitattributes", ".gitmodules", ".dockerignore", "dockerfile", "readme.md", "readme.txt", "readme.rst", "license", "license.txt", "license.md", "changelog.md", "changelog.txt", "contributing.md", "code_of_conduct.md", ".editorconfig", ".eslintrc", ".prettierrc", "tsconfig.json", "jsconfig.json", ".babelrc", "webpack.config.js", ".travis.yml", ".circleci", "appveyor.yml", "jenkinsfile", ".github", "schema.sql", "seeds.sql", "todo.txt", "notes.txt", "manifest.mf", "meta-inf"}
+        skip_files = {"package.json", "package-lock.json", "yarn.lock", "pom.xml", "build.gradle", 
+                      "settings.gradle", "gradle.properties", "build.xml", "ivy.xml", "makefile", 
+                      "cmake", "cmakecache.txt", "requirements.txt", "pipfile", "pipfile.lock", 
+                      "poetry.lock", "composer.json", "composer.lock", "gemfile", "gemfile.lock", 
+                      ".gitignore", ".gitattributes", ".gitmodules", ".dockerignore", "dockerfile", 
+                      "readme.md", "readme.txt", "readme.rst", "license", "license.txt", "license.md", 
+                      "changelog.md", "changelog.txt", "contributing.md", "code_of_conduct.md", 
+                      ".editorconfig", ".eslintrc", ".prettierrc", "tsconfig.json", "jsconfig.json", 
+                      ".babelrc", "webpack.config.js", ".travis.yml", ".circleci", "appveyor.yml", 
+                      "jenkinsfile", ".github", "schema.sql", "seeds.sql", "todo.txt", "notes.txt", 
+                      "manifest.mf", "meta-inf"}
 
         # Check exact filename matches
         if filename in skip_files:
             return True
 
         # Check file extensions for non-code files
-        skip_extensions = {".md", ".txt", ".rst", ".pdf", ".doc", ".docx", ".json", ".xml", ".yaml", ".yml", ".ini", ".cfg", ".conf", ".properties", ".env", ".local", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".bmp", ".mp3", ".mp4", ".avi", ".mov", ".wav", ".zip", ".tar", ".gz", ".7z", ".rar", ".exe", ".dll", ".so", ".dylib", ".jar", ".war", ".ear", ".db", ".sqlite", ".sqlite3", ".mdb", ".log", ".tmp", ".temp", ".cache", ".pem", ".key", ".crt", ".cert", ".g4", ".sh", ".bash", ".zsh", ".fish", ".bat", ".cmd", ".ps1", ".psm1", ".lock"}
+        skip_extensions = {".md", ".txt", ".rst", ".pdf", ".doc", ".docx", ".json", ".xml", ".yaml", 
+                           ".yml", ".ini", ".cfg", ".conf", ".properties", ".env", ".local", ".png", 
+                           ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".bmp", ".mp3", ".mp4", ".avi", 
+                           ".mov", ".wav", ".zip", ".tar", ".gz", ".7z", ".rar", ".exe", ".dll", ".so", 
+                           ".dylib", ".jar", ".war", ".ear", ".db", ".sqlite", ".sqlite3", ".mdb", 
+                           ".log", ".tmp", ".temp", ".cache", ".pem", ".key", ".crt", ".cert", ".g4", 
+                           ".sh", ".bash", ".zsh", ".fish", ".bat", ".cmd", ".ps1", ".psm1", ".lock"}
 
         ext = Path(filepath).suffix.lower()
         return ext in skip_extensions
@@ -140,7 +162,7 @@ class CodeComplexityAnalyzer:
                 current_function = {
                     "name": func_name,
                     "start_line": i + 1,
-                    "end_line": i + 1,
+                    "end_line": i + 1,  # Will be updated when function ends
                     "content": [line],
                     "language": language,
                 }
@@ -149,8 +171,7 @@ class CodeComplexityAnalyzer:
 
             elif in_function and current_function:
                 current_function["content"].append(line)
-                current_function["end_line"] = i + 1
-
+                
                 # Track braces to find function end
                 brace_count += line.count("{") - line.count("}")
 
@@ -162,19 +183,20 @@ class CodeComplexityAnalyzer:
                         and not line.startswith("\t")
                     ):
                         if not re.match(r"^\s*(def|class|@)", line):
+                            current_function["end_line"] = i  # Set end_line before finishing
                             functions.append(current_function)
                             current_function = None
                             in_function = False
 
-                # For brace-based languages
+                # For brace-based languages like Java
                 elif brace_count <= 0 and "{" in "".join(current_function["content"]):
+                    current_function["end_line"] = i + 1  # Set correct end_line
                     functions.append(current_function)
                     current_function = None
                     in_function = False
 
         if current_function:
             functions.append(current_function)
-
         return functions
 
     def calculate_cyclomatic_complexity(self, content: str, language: str) -> int:
