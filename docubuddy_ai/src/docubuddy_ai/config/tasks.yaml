@@ -1,36 +1,35 @@
 task1:
-  agent: code_analyzer
+  agent: code_segmenter
   description: >
-    Receive the raw code text and compliance information from the vector database.
-    Analyze the code, segment it into classes, functions, and logical parts.
-    Return a structured breakdown of the code components with annotations.
+    Receive the raw code text. Analyze the code and segment it into classes, functions, and logical parts.
+    Return a properly formatted string that clearly separates each code segment with annotations 
+    (e.g., "### Function: <name>", "### Class: <name>") to ensure readability and ease of further explanation.
   inputs:
     - code_text
-    - compliance_info
   expected_output:
-    - code_components  # what this task produces
+    - segmented_code  # formatted string breakdown of the code
+
 
 task2:
-  agent: compliance_checker
+  agent: developer_explainer
   description: >
-    Take the segmented code components and compliance info.
-    Evaluate each component against compliance requirements.
-    Provide detailed feedback highlighting compliance issues, risks, or improvements per component.
+    Take the segmented code components and the developer prompt.
+    Provide a detailed technical explanation highlighting logic, algorithms, structure, and best practices per code component.
+    Focus on developer needs and insights.
   inputs:
-    - code_components
-    - compliance_info
+    - segmented_code
+    - user_prompt
   expected_output:
-    - compliance_feedback
+    - developer_explanation  # technical detailed explanations
 
 task3:
-  agent: doc_writer
+  agent: business_explainer
   description: >
-    Using the code segments and compliance feedback, generate detailed documentation and a README file.
-    The documentation should include explanations and compliance notes for each component.
-    The README should summarize the entire codebase, highlight key compliance feedback, and provide clear guidance for users.
+    Take the segmented code components and the business prompt.
+    Provide a business-focused explanation interpreting the purpose and value of each code component.
+    Highlight business impact, operational importance, and benefits in a non-technical way.
   inputs:
-    - code_components
-    - compliance_feedback
+    - segmented_code
+    - user_prompt
   expected_output:
-    - documentation
-    - readme_text
+    - business_explanation  # business-level understandable explanations

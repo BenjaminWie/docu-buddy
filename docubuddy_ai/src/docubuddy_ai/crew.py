@@ -1,33 +1,34 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from typing import List, Dict, Any
+from typing import List
+from typing import Any
 
 @CrewBase
-class DocubuddyAi:
-    """DocubuddyAi crew with code analysis, compliance check, and documentation generation."""
+class CodeExplainBuddy:
+    """CodeExplainBuddy crew with code segmentation and two perspectives (Developer & Business) explanations."""
 
     agents: List[BaseAgent]
     tasks: List[Task]
 
     @agent
-    def code_analyzer(self) -> Agent:
+    def code_segmenter(self) -> Agent:
         return Agent(
-            config=self.agents_config['code_analyzer'],  # from agents.yaml
+            config=self.agents_config['code_segmenter'],  # maps to agents.yaml
             verbose=True
         )
 
     @agent
-    def compliance_checker(self) -> Agent:
+    def developer_explainer(self) -> Agent:
         return Agent(
-            config=self.agents_config['compliance_checker'],  # from agents.yaml
+            config=self.agents_config['developer_explainer'],  # maps to agents.yaml
             verbose=True
         )
 
     @agent
-    def doc_writer(self) -> Agent:
+    def business_explainer(self) -> Agent:
         return Agent(
-            config=self.agents_config['doc_writer'],  # from agents.yaml
+            config=self.agents_config['business_explainer'],  # maps to agents.yaml
             verbose=True
         )
 
@@ -35,33 +36,32 @@ class DocubuddyAi:
     def analyze_code_task(self) -> Task:
         """Task 1: Analyze code into components"""
         return Task(
-            config=self.tasks_config['task1'],  # from tasks.yaml
-            # expects input: code_text, compliance_info
+            config=self.tasks_config['task1'],
+            # expects input: code_text
         )
 
     @task
-    def compliance_check_task(self) -> Task:
-        """Task 2: Check compliance of code components"""
+    def explain_code_developer_task(self) -> Task:
+        """Task 2: Developer-focused code explanation"""
         return Task(
             config=self.tasks_config['task2'],
-            # expects input: code_components, compliance_info
+            # expects input: segmented_code, user_prompt
         )
 
     @task
-    def generate_docs_task(self) -> Task:
-        """Task 3: Generate documentation and README"""
+    def explain_code_business_task(self) -> Task:
+        """Task 3: Business-focused code explanation"""
         return Task(
             config=self.tasks_config['task3'],
-            output_file='README.md'
-            # expects input: code_components, compliance_feedback
+            # expects input: segmented_code, user_prompt
         )
 
     @crew
     def crew(self) -> Crew:
-        """Create the crew with agents and tasks in sequential process."""
+        """Create the crew with agents and tasks."""
         return Crew(
             agents=self.agents,
             tasks=self.tasks,
-            process=Process.sequential,  # run tasks one after another
+            process=Process.sequential,  # Run tasks in order (segment first, then explain)
             verbose=True,
         )

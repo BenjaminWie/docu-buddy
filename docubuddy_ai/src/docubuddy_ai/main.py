@@ -3,35 +3,34 @@ import sys
 import warnings
 from datetime import datetime
 
-from crew import DocubuddyAi
+from crew import CodeExplainBuddy
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
 def run():
     """
-    Run the crew with code text and compliance info inputs.
+    Run the crew with code text and user prompt inputs.
     """
-    # Replace these example inputs with your actual code and compliance data
+    # Replace these example inputs with your actual code and prompts
     inputs = {
         'code_text': """
         # Paste your source code here as a string
-        def example_function(x):
-            return x * 2
+        def multiply(x, y):
+            return x * y
 
-        class ExampleClass:
-            def method(self):
-                pass
+        class Calculator:
+            def add(self, a, b):
+                return a + b
         """,
-        'compliance_info': """
-        # Paste relevant compliance requirements, summaries or vector DB results here as a string
-        Ensure functions have docstrings. Classes must follow naming conventions.
+        'user_prompt': """
+        Explain the functionality and relevance of this code.
         """,
-        'topic': 'AI LLMs',
+        'topic': 'Code Understanding',
         'current_year': str(datetime.now().year),
     }
     
     try:
-        DocubuddyAi().crew().kickoff(inputs=inputs)
+        CodeExplainBuddy().crew().kickoff(inputs=inputs)
         print("Crew execution completed successfully.")
     except Exception as e:
         raise Exception(f"An error occurred while running the crew: {e}")
@@ -41,13 +40,13 @@ def train():
     Train the crew for a given number of iterations.
     """
     inputs = {
-        'code_text': '',  # You may want to customize or parameterize this
-        'compliance_info': '',
-        'topic': 'AI LLMs',
+        'code_text': '',  # Customize or parameterize as needed
+        'user_prompt': '',
+        'topic': 'Code Understanding',
         'current_year': str(datetime.now().year),
     }
     try:
-        DocubuddyAi().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
+        CodeExplainBuddy().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
 
     except Exception as e:
         raise Exception(f"An error occurred while training the crew: {e}")
@@ -57,24 +56,24 @@ def replay():
     Replay the crew execution from a specific task.
     """
     try:
-        DocubuddyAi().crew().replay(task_id=sys.argv[1])
+        CodeExplainBuddy().crew().replay(task_id=sys.argv[1])
 
     except Exception as e:
         raise Exception(f"An error occurred while replaying the crew: {e}")
 
 def test():
     """
-    Test the crew execution and returns the results.
+    Test the crew execution and return the results.
     """
     inputs = {
         'code_text': '',  # Add appropriate test code text here
-        'compliance_info': '',
-        'topic': 'AI LLMs',
+        'user_prompt': '',
+        'topic': 'Code Understanding',
         'current_year': str(datetime.now().year),
     }
     
     try:
-        DocubuddyAi().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
+        CodeExplainBuddy().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
 
     except Exception as e:
         raise Exception(f"An error occurred while testing the crew: {e}")
