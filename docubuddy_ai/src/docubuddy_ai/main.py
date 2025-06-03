@@ -1,25 +1,33 @@
 #!/usr/bin/env python
 import sys
 import warnings
-
 from datetime import datetime
 
 from crew import DocubuddyAi
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
-# This main file is intended to be a way for you to run your
-# crew locally, so refrain from adding unnecessary logic into this file.
-# Replace with inputs you want to test with, it will automatically
-# interpolate any tasks and agents information
-
 def run():
     """
-    Run the crew.
+    Run the crew with code text and compliance info inputs.
     """
+    # Replace these example inputs with your actual code and compliance data
     inputs = {
+        'code_text': """
+        # Paste your source code here as a string
+        def example_function(x):
+            return x * 2
+
+        class ExampleClass:
+            def method(self):
+                pass
+        """,
+        'compliance_info': """
+        # Paste relevant compliance requirements, summaries or vector DB results here as a string
+        Ensure functions have docstrings. Classes must follow naming conventions.
+        """,
         'topic': 'AI LLMs',
-        'current_year': str(datetime.now().year)
+        'current_year': str(datetime.now().year),
     }
     
     try:
@@ -28,14 +36,15 @@ def run():
     except Exception as e:
         raise Exception(f"An error occurred while running the crew: {e}")
 
-
 def train():
     """
     Train the crew for a given number of iterations.
     """
     inputs = {
-        "topic": "AI LLMs",
-        'current_year': str(datetime.now().year)
+        'code_text': '',  # You may want to customize or parameterize this
+        'compliance_info': '',
+        'topic': 'AI LLMs',
+        'current_year': str(datetime.now().year),
     }
     try:
         DocubuddyAi().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
@@ -58,8 +67,10 @@ def test():
     Test the crew execution and returns the results.
     """
     inputs = {
-        "topic": "AI LLMs",
-        "current_year": str(datetime.now().year)
+        'code_text': '',  # Add appropriate test code text here
+        'compliance_info': '',
+        'topic': 'AI LLMs',
+        'current_year': str(datetime.now().year),
     }
     
     try:
@@ -67,3 +78,15 @@ def test():
 
     except Exception as e:
         raise Exception(f"An error occurred while testing the crew: {e}")
+
+if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        run()
+    elif sys.argv[1] == "train":
+        train()
+    elif sys.argv[1] == "replay":
+        replay()
+    elif sys.argv[1] == "test":
+        test()
+    else:
+        print("Unknown command. Use no args to run, or 'train', 'replay', or 'test'.")

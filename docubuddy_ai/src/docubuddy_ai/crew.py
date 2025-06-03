@@ -1,64 +1,67 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
-from typing import List
-# If you want to run a snippet of code before or after the crew starts,
-# you can use the @before_kickoff and @after_kickoff decorators
-# https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
+from typing import List, Dict, Any
 
 @CrewBase
-class DocubuddyAi():
-    """DocubuddyAi crew"""
+class DocubuddyAi:
+    """DocubuddyAi crew with code analysis, compliance check, and documentation generation."""
 
     agents: List[BaseAgent]
     tasks: List[Task]
 
-    # Learn more about YAML configuration files here:
-    # Agents: https://docs.crewai.com/concepts/agents#yaml-configuration-recommended
-    # Tasks: https://docs.crewai.com/concepts/tasks#yaml-configuration-recommended
-    
-    # If you would like to add tools to your agents, you can learn more about it here:
-    # https://docs.crewai.com/concepts/agents#agent-tools
     @agent
-    def researcher(self) -> Agent:
+    def code_analyzer(self) -> Agent:
         return Agent(
-            config=self.agents_config['researcher'], # type: ignore[index]
+            config=self.agents_config['code_analyzer'],  # from agents.yaml
             verbose=True
         )
 
     @agent
-    def reporting_analyst(self) -> Agent:
+    def compliance_checker(self) -> Agent:
         return Agent(
-            config=self.agents_config['reporting_analyst'], # type: ignore[index]
+            config=self.agents_config['compliance_checker'],  # from agents.yaml
             verbose=True
         )
 
-    # To learn more about structured task outputs,
-    # task dependencies, and task callbacks, check out the documentation:
-    # https://docs.crewai.com/concepts/tasks#overview-of-a-task
-    @task
-    def research_task(self) -> Task:
-        return Task(
-            config=self.tasks_config['research_task'], # type: ignore[index]
+    @agent
+    def doc_writer(self) -> Agent:
+        return Agent(
+            config=self.agents_config['doc_writer'],  # from agents.yaml
+            verbose=True
         )
 
     @task
-    def reporting_task(self) -> Task:
+    def analyze_code_task(self) -> Task:
+        """Task 1: Analyze code into components"""
         return Task(
-            config=self.tasks_config['reporting_task'], # type: ignore[index]
-            output_file='report.md'
+            config=self.tasks_config['task1'],  # from tasks.yaml
+            # expects input: code_text, compliance_info
+        )
+
+    @task
+    def compliance_check_task(self) -> Task:
+        """Task 2: Check compliance of code components"""
+        return Task(
+            config=self.tasks_config['task2'],
+            # expects input: code_components, compliance_info
+        )
+
+    @task
+    def generate_docs_task(self) -> Task:
+        """Task 3: Generate documentation and README"""
+        return Task(
+            config=self.tasks_config['task3'],
+            output_file='README.md'
+            # expects input: code_components, compliance_feedback
         )
 
     @crew
     def crew(self) -> Crew:
-        """Creates the DocubuddyAi crew"""
-        # To learn how to add knowledge sources to your crew, check out the documentation:
-        # https://docs.crewai.com/concepts/knowledge#what-is-knowledge
-
+        """Create the crew with agents and tasks in sequential process."""
         return Crew(
-            agents=self.agents, # Automatically created by the @agent decorator
-            tasks=self.tasks, # Automatically created by the @task decorator
-            process=Process.sequential,
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,  # run tasks one after another
             verbose=True,
-            # process=Process.hierarchical, # In case you wanna use that instead https://docs.crewai.com/how-to/Hierarchical/
         )
